@@ -15,26 +15,14 @@ echo -n " Start... "
 
 type zenity > /dev/null || { echo "[$0] Il pacchetto zenity non è installato"; exit 1; }
 
-Usage() {
-	echo " "
-	echo " Script 0.1 Thursday, 16. October 2014"
-	echo " Utilizzo: "
-	echo " "` basename $0` " new_instance_name "
-	echo " "
-}
-
 AskConfirm() {
+	zenity --question --title="Conferma" --text "${1}"
 
-	while true ; do	
-		zenity --question --title="Conferma" --text "${1}"
-
-		if [ "$?" -eq "0" ] ; then
-			return 1;
-		else
-			return 0;
-		fi;	
-	done;
-
+	if [ "$?" -eq "0" ] ; then
+		return 1;
+	else
+		return 0;
+	fi;	
 }
 
 if [ $# -eq 1 ]; then
@@ -51,9 +39,17 @@ if [ $# -eq 1 ]; then
 
 				cp -a TEMPLATE $NEW_INSTANCE_NAME;
 
-			    find $NEW_INSTANCE_NAME -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g";
+				(   echo "50"; \
+					sleep 3; \
+				    find $NEW_INSTANCE_NAME -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
+					echo "50"; \
+                    sleep 3; \
+					cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+				) | zenity --progress --pulsate --text="Preparazione degli script in corso" --percentage=0 --auto-close
 
-			    cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+			    
+
+
 
 			fi;
 
@@ -64,6 +60,6 @@ if [ $# -eq 1 ]; then
 			;;
 	esac;
 else
-	echo "Il numero di parametri forniti non e' corretto"
+    zenity --error --title "Errore" --text="Il numero di parametri forniti non e' corretto"
 	exit 1;
 fi;
