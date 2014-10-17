@@ -1,7 +1,7 @@
 #!/bin/bash
 # Thursday, 16. October 2014
 #
-# Script di creazione degli script oracle, a partire da un TEMPLATE comune.
+# Script di creazione degli script oracle AVANZATI, a partire da un TEMPLATE comune.
 # !!!! Applicazione con interfaccia grafica !!!!
 #
 # Link Utili:
@@ -27,11 +27,9 @@ SETVAR
 	case $1 in
 		error)
 			zenity --error --title "Errore" --text="$MSG"
-			break;
 		 	;;			
 		help)
 			zenity --info --title "Help" --text="$MSG"
-			break
 			;;
 		*) 
 			zenity --info --title "Help" --text="$MSG"
