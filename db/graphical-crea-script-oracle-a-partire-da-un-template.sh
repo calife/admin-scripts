@@ -11,9 +11,32 @@
 #
 # @depends:  zenity
 
+# @TODO implementare gli step per la definizione avanzata dei datafile di ciascun tablespace (lo script va eseguito prima dell' import).
+# @TODO fornita una lista di banche dati, estrarre la definizione dei datafile per la banca dati selezionata e richiamare la funzionalità di cui sopra.
+
 echo -n " Start... "
 
 type zenity > /dev/null || { echo "[$0] Il pacchetto zenity non è installato"; exit 1; }
+
+Usage() {
+	MSG=$(cat <<SETVAR
+Help:
+` basename $0`  new_instance_name
+SETVAR
+	)
+	case $1 in
+		error)
+			zenity --error --title "Errore" --text="$MSG"
+			break;
+		 	;;			
+		help)
+			zenity --info --title "Help" --text="$MSG"
+			break
+			;;
+		*) 
+			zenity --info --title "Help" --text="$MSG"
+	esac;
+}
 
 AskConfirm() {
 	zenity --question --title="Conferma" --text "${1}"
@@ -39,17 +62,14 @@ if [ $# -eq 1 ]; then
 
 				cp -a TEMPLATE $NEW_INSTANCE_NAME;
 
+                # sed in place + rename
 				(   echo "50"; \
-					sleep 3; \
-				    find $NEW_INSTANCE_NAME -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
+					sleep 2; \
+				    find $NEW_INSTANCE_NAME -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
 					echo "50"; \
-                    sleep 3; \
+                    sleep 2; \
 					cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
 				) | zenity --progress --pulsate --text="Preparazione degli script in corso" --percentage=0 --auto-close
-
-			    
-
-
 
 			fi;
 
@@ -60,6 +80,6 @@ if [ $# -eq 1 ]; then
 			;;
 	esac;
 else
-    zenity --error --title "Errore" --text="Il numero di parametri forniti non e' corretto"
+	Usage error
 	exit 1;
 fi;

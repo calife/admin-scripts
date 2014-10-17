@@ -48,9 +48,9 @@ if [ $# -eq 1 ]; then
 
 				cp -a TEMPLATE $NEW_INSTANCE_NAME;
 
-			    find $NEW_INSTANCE_NAME -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g";
+			    find $NEW_INSTANCE_NAME  -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g";
 
-				cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+				cd $NEW_INSTANCE_NAME && find .  -maxdepth 1 -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
 
 			fi;
 
