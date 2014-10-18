@@ -1,7 +1,7 @@
 #!/bin/bash
 # Thursday, 16. October 2014
 #
-# Script di creazione degli script oracle, a partire da un TEMPLATE comune.
+# Script di creazione degli script oracle, a partire da un  comune.
 #
 #
 
@@ -42,15 +42,15 @@ if [ $# -eq 1 ]; then
 
 			NEW_INSTANCE_NAME=$1;
 
-			AskConfirm "Vuoi rinominare gli script TEMPLATE per la nuova istanza "$NEW_INSTANCE_NAME" ?[y/n] ";
+			AskConfirm "Vuoi rinominare gli script  per la nuova istanza "$NEW_INSTANCE_NAME" ?[y/n] ";
 
 			if [ $? != 0 ]; then
 
-				cp -a TEMPLATE $NEW_INSTANCE_NAME;
+				cp -a  $NEW_INSTANCE_NAME;
 
-			    find $NEW_INSTANCE_NAME  -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g";
+			    find $NEW_INSTANCE_NAME  -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s//$NEW_INSTANCE_NAME/g";
 
-				cd $NEW_INSTANCE_NAME && find .  -maxdepth 1 -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+				cd $NEW_INSTANCE_NAME && find .  -maxdepth 1 -type f -name "**"|while read f; do mv $f ${f//$NEW_INSTANCE_NAME} ; done;
 
 			fi;
 

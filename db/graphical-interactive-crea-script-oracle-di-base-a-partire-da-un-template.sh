@@ -8,8 +8,14 @@
 # http://linuxaria.com/howto/introduction-zenity-bash-gu
 # http://www.linux.org/threads/zenity-gui-for-shell-scripts.5567/
 # http://jamesslocum.com/post/61904545275
+# http://techpad.co.uk/content.php?sid=90
 #
 # @depends:  zenity
+
+
+# Global variables with default values
+NEW_INSTANCE_NAME='';
+
 
 
 echo -n " Start... "
@@ -27,12 +33,29 @@ SETVAR
 			zenity --error --title "Errore" --text="$MSG"
 		 	;;			
 		help)
-			zenity --info --title "Help" --text="$MSG"
+			zenity --info --title "Help" --text="$2"
 			;;
 		*) 
-			zenity --info --title "Help" --text="$MSG"
+			zenity --info --title "Help" --text="$2"
 	esac;
 }
+
+AskNomeIstanza(){
+	NEW_INSTANCE_NAME=$( \
+		zenity --entry \
+		--title="Creazione script per la nuova istanza" \
+		--text="Nome della nuova istanza" \
+		--width=400 \
+		--entry-text=""
+	)
+
+	if [ "$?" -eq "0" ] ; then
+		return 1;
+	else
+		return 0;
+	fi;
+}
+
 
 AskConfirm() {
 	zenity --question --title="Conferma" --text "${1}"
@@ -44,38 +67,31 @@ AskConfirm() {
 	fi;	
 }
 
-if [ $# -eq 1 ]; then
-	case "$1" in
-		"" ) Usage; exit 0;;
-		--help|-h) Usage; exit 0;;
-		*  )
+################ Main Function ################
 
-			NEW_INSTANCE_NAME=$1;
+AskNomeIstanza
 
-			AskConfirm "Stai creando gli script per la nuova istanza $NEW_INSTANCE_NAME.\nVuoi procedere?";
+if [ x"$NEW_INSTANCE_NAME" != x ] ; then
 
-			if [ $? != 0 ]; then
+	AskConfirm "Stai creando gli script per la nuova istanza $NEW_INSTANCE_NAME.\nVuoi procedere?";
 
-				cp -a TEMPLATE $NEW_INSTANCE_NAME;
+	if [ $? != 0 ]; then
 
-                # sed in place + rename
-				(   echo "50"; \
-					sleep 2; \
-				    find $NEW_INSTANCE_NAME -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
-					echo "50"; \
-                    sleep 2; \
-					cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
-				) | zenity --progress --pulsate --text="Preparazione degli script in corso" --percentage=0 --auto-close
+		cp -a TEMPLATE $NEW_INSTANCE_NAME;
 
-			fi;
+        # sed in place + rename
+		(   echo "50"; \
+			sleep 2; \
+			find $NEW_INSTANCE_NAME -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
+			echo "50"; \
+			sleep 2; \
+			cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+		) | zenity --width=400  --progress --pulsate --text="Preparazione degli script in corso" --percentage=0 --no-cancel --auto-close
 
-			echo " ...Leave";
+		Usage help Fine;
 
-			exit 0;
-
-			;;
-	esac;
-else
-	Usage error
-	exit 1;
+	fi;
 fi;
+
+echo " ...Leave";
+exit 0;
