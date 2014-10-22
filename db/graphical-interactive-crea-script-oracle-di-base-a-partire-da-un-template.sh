@@ -15,8 +15,9 @@
 
 # Global variables with default values
 NEW_INSTANCE_NAME='';
-
-
+PASSWORD_AFM='AFM';
+PASSWORD_AFM_SECURE='AFM';
+NUM_TABLESPACE_DOC=1;
 
 echo -n " Start... "
 
@@ -55,7 +56,6 @@ AskNomeIstanza(){
 		return 0;
 	fi;
 }
-
 
 AskConfirm() {
 	zenity --question --title="Conferma" --text "${1}"

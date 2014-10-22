@@ -44,21 +44,6 @@ echo "Franchement la classe cette nouvelle fonction Zenity :P"
 
 
 
-
-
-
-
-
-
-
-# Global variables with default values
-NEW_INSTANCE_NAME='';
-
-
-echo -n " Start... "
-
-type zenity > /dev/null || { echo "[$0] Il pacchetto zenity non è installato"; exit 1; }
-
 Usage() {
 	MSG=$(cat <<SETVAR
 Help:
@@ -93,6 +78,30 @@ AskNomeIstanza(){
 	fi;
 }
 
+AskInstanceData() {
+	cfgpass=`zenity --forms \
+		--title="Creazione script per la nuova istanza" \
+		--text="Dati generali" \
+		--add-entry="Nome instanza" \
+		--add-password="Password AFM" \
+		--add-password="Password AFM_SECURE" \
+		--separator="|" \
+        --width=400`
+
+#Si on clique sur le bouton Annuler
+	if [ "$?" -eq 1 ]; then
+    #On quitte le script
+		exit
+	fi
+#Sinon on continue
+#On peut récupérer les valeurs des différents champs de cette façon :
+	echo "$cfgpass" | cut -d "|" -f1 #Nom de l'utilisateur
+	echo "$cfgpass" | cut -d "|" -f2 | md5sum #Ancien Mot de passe
+	echo "$cfgpass" | cut -d "|" -f3 | md5sum #Nouveau Mot de passe
+	echo "$cfgpass" | cut -d "|" -f4 | md5sum #Confirmation du nouveau mot de passe
+
+	echo "Franchement la classe cette nouvelle fonction Zenity :P"
+}
 
 AskConfirm() {
 	zenity --question --title="Conferma" --text "${1}"
@@ -106,7 +115,8 @@ AskConfirm() {
 
 ################ Main Function ################
 
-AskNomeIstanza
+# AskNomeIstanza
+AskInstanceData
 
 if [ x"$NEW_INSTANCE_NAME" != x ] ; then
 
