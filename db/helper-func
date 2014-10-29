@@ -1,0 +1,48 @@
+# Libreria delle funzioni helper per la generazione degli script SQL archibus su Oracle
+
+
+# "$CWD" "$NEW_INSTANCE_NAME"
+genera-script-base() {
+
+	if [ -d "$1" ] ; then
+
+		pushd . > /dev/null
+
+		cd "$1" && 	cp -a TEMPLATE "$2"
+
+		find "$2" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$2/g";
+
+		cd "$2" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$2} ; done;
+
+		popd
+
+	else 
+		echo "Directory "$1" inesistente";
+	fi;
+
+}
+
+
+# "$CWD" "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
+genera-script-cambio-password() {
+
+	output=`cat <<EOF
+
+SPOOL AFM_ROLES_CONST.LST
+
+ALTER USER AFM IDENTIFIED BY "${3}" SCOPE BOTH;
+ALTER USER AFM_SECURE IDENTIFIED BY "${3}" SCOPE BOTH;
+
+SPOOL OFF
+EXIT
+
+EOF
+`
+	if [ -d "$1"/"$2" ] ; then
+		:> "$1"/"$2"/pwd.sql
+		echo "${output}" >> $1/$2/pwd.sql
+	else 
+		echo "Directory "$1"/"$2" inesistente";
+	fi;
+
+}

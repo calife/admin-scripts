@@ -1,7 +1,7 @@
 #!/bin/bash
 # Thursday, 16. October 2014
 #
-# Script di creazione degli script oracle, a partire da un  comune.
+# Script di creazione degli script oracle, a partire da un TEMPLATE comune.
 #
 #
 
