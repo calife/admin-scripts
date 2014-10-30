@@ -1,5 +1,9 @@
 # Libreria delle funzioni helper per la generazione degli script SQL archibus su Oracle
 
+CONFIG_FILE=$(dirname $(realpath $0))/defaults.cfg
+test -r "$CONFIG_FILE" || echo "$CONFIG_FILE not found" && source "$CONFIG_FILE"
+
+echo $cool_host
 
 # "$CWD" "$NEW_INSTANCE_NAME"
 genera-script-base() {
@@ -8,15 +12,21 @@ genera-script-base() {
 
 		pushd . > /dev/null
 
-		cd "$1" && 	cp -a TEMPLATE "$2"
+		if [ -z "$2" ] ; then
+			INSTANCE_NAME=$DEFAULT_INSTANCE_NAME
+		else
+			INSTANCE_NAME=$2;
+		fi;
 
-		find "$2" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$2/g";
+		cd "$1" && 	cp -a TEMPLATE "$INSTANCE_NAME"
 
-		cd "$2" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$2} ; done;
+		find "$INSTANCE_NAME" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$INSTANCE_NAME/g";
+
+		cd "$INSTANCE_NAME" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$INSTANCE_NAME} ; done;
 
 		popd
 
-	else 
+	else
 		echo "Directory "$1" inesistente";
 	fi;
 
@@ -26,23 +36,30 @@ genera-script-base() {
 # "$CWD" "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
 genera-script-cambio-password() {
 
-	output=`cat <<EOF
+	if [ -z "$2" ] ; then
+		INSTANCE_NAME=$DEFAULT_INSTANCE_NAME
+	else
+		INSTANCE_NAME=$2;
+	fi;
 
-SPOOL AFM_ROLES_CONST.LST
+	if [ -d "$1"/"$INSTANCE_NAME" ] ; then
 
-ALTER USER AFM IDENTIFIED BY "${3}" SCOPE BOTH;
-ALTER USER AFM_SECURE IDENTIFIED BY "${3}" SCOPE BOTH;
+		pushd . > /dev/null
 
-SPOOL OFF
-EXIT
+		cd "$1"
 
-EOF
-`
-	if [ -d "$1"/"$2" ] ; then
-		:> "$1"/"$2"/pwd.sql
-		echo "${output}" >> $1/$2/pwd.sql
+        if [ -z "$3" ] ; then
+			NEW_AFM_PASSWORD=$DEFAULT_AFM_PASSWORD
+		else
+			NEW_AFM_PASSWORD=$3;
+		fi;
+
+		find "$INSTANCE_NAME" -maxdepth 1 -type f -name "pwd.sql" | xargs sed -i "s/AFM_PASSWD/$NEW_AFM_PASSWORD/g";
+
+		popd
+
 	else 
-		echo "Directory "$1"/"$2" inesistente";
+		echo "Directory "$1"/"$INSTANCE_NAME" inesistente";
 	fi;
 
 }

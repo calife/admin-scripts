@@ -15,7 +15,7 @@ finale(){
   [ $? -eq 1 ] && exit 0
 }
 
-# Helper function per creare gli script
+# Verifica ed esegue il caricamento delle funzioni di help, per creare gli script
 checkRequired() {
 	if [ ! -f ${CWD}/helper-func ] ; then
 		echo "Missing helper-func";
