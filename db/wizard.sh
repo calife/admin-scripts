@@ -70,21 +70,20 @@ b() {
 	fi;
 }
 
-# Aumenta la dimensione del tablespace AFM_P1
+#  Definisci il numero di datafile per il tablespace AFM_P1 e la dimensione di ciascuno di essi
 c() {
-	: 
+	genera-script-tablespace-AFM_P1 "$CWD" "$NEW_INSTANCE_NAME" 4 "4096M"
 }
 
-# Aumenta la dimensione del tablespace Documentale
+#  Definisci il numero di datafile per il tablespace documentale e la dimensione di ciascuno di essi
 d() {
-	: 
+	genera-script-tablespace-AFM_BLOB "$CWD" "$NEW_INSTANCE_NAME" 16 "4096M"
 }
 
 showmenu() {
 
 	SELECTION=$( \
 
-        # Column 2 is function name and is hidden from list
 		zenity --list \
 			--radiolist \
 			--title="Wizard di creazione script per istanza $NEW_INSTANCE_NAME" \
