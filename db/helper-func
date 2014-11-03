@@ -4,81 +4,63 @@
 # @author Pucci
 #
 
+CWD=$(dirname $(realpath $0))
 
 # Caricamento del file di configurazione con i parametri di default (nome_istanza,password,dimensione datafiles).
 # Sono utilizzati se non diversamente specificati dall' interfaccia grafica.
-CONFIG_FILE=$(dirname $(realpath $0))/defaults.cfg
+CONFIG_FILE="$CWD"/defaults.cfg
 test -r "$CONFIG_FILE" || echo "$CONFIG_FILE not found" && source "$CONFIG_FILE"
 
 
-
-# "$CWD" "$NEW_INSTANCE_NAME"
+# "$NEW_INSTANCE_NAME"
 genera-script-base() {
 
     # Carica i default se non specificato diversamente
-	if [ -z "$2" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME;	else INSTANCE_NAME=$2; fi;
+	if [ -z "$1" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME;	else INSTANCE_NAME=$1; fi;
 
-	if [ -d "$1" ] ; then
+	test -d /tmp/"$INSTANCE_NAME" && rm -rf /tmp/"$INSTANCE_NAME"
 
-		pushd . > /dev/null
+	pushd . > /dev/null
 
-		cd "$1" && 	cp -a TEMPLATE "$INSTANCE_NAME"
+	cp -a "$CWD"/TEMPLATE /tmp/"$INSTANCE_NAME"
 
-		find "$INSTANCE_NAME" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$INSTANCE_NAME/g";
+	find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$INSTANCE_NAME/g";
 
-		cd "$INSTANCE_NAME" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$INSTANCE_NAME} ; done;
+	cd /tmp/"$INSTANCE_NAME" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$INSTANCE_NAME} ; done;
 
-		popd
-
-	else
-		echo "Directory "$1" inesistente";
-	fi;
+	popd
 
 }
 
 
-# "$CWD" "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
+# "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
 genera-script-cambio-password() {
 
     # Carica i default se non specificato diversamente
-	if [ -z "$2" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$2; fi;
-    if [ -z "$3" ] ; then NEW_AFM_PASSWORD=$DEFAULT_AFM_PASSWORD; else	NEW_AFM_PASSWORD=$3; fi;
+	if [ -z "$1" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$1; fi;
+    if [ -z "$2" ] ; then NEW_AFM_PASSWORD=$DEFAULT_AFM_PASSWORD; else	NEW_AFM_PASSWORD=$2; fi;
 
-	if [ -d "$1"/"$INSTANCE_NAME" ] ; then
+	if [ -d /tmp/"$INSTANCE_NAME" ] ; then
 
-		pushd . > /dev/null
-
-		cd "$1"
-
-		find "$INSTANCE_NAME" -maxdepth 1 -type f -name "pwd.sql" | xargs sed -i "s/AFM_PASSWD/$NEW_AFM_PASSWORD/g";
-
-		popd
+		find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -name "pwd.sql" | xargs sed -i "s/AFM_PASSWD/$NEW_AFM_PASSWORD/g";
 
 	else 
-		echo "Directory "$1"/"$INSTANCE_NAME" inesistente";
+		echo "Directory /tmp/$INSTANCE_NAME inesistente";
 	fi;
 
 }
 
-# "$CWD" "$NEW_INSTANCE_NAME" "$N_DATAFILE" "$SIZE (MB)"
+# "$NEW_INSTANCE_NAME" "$N_DATAFILE" "$SIZE (MB)"
 genera-script-tablespace-AFM_P1() {
 
-echo "---------------------- "$4
-
     # Carica i default se non specificato diversamente
-	if [ -z "$2" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$2; fi;
-    if [ -z "$3" ] ; then NEW_AFM_P1_NUM_DATAFILES=$DEFAULT_AFM_P1_NUM_DATAFILES; else NEW_AFM_P1_NUM_DATAFILES=$3; fi;
-    if [ -z "$4" ] ; then NEW_SIZE_PARAM=$DEFAULT_SIZE; else NEW_SIZE_PARAM=$4; fi;
+	if [ -z "$1" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$1; fi;
+    if [ -z "$2" ] ; then NEW_AFM_P1_NUM_DATAFILES=$DEFAULT_AFM_P1_NUM_DATAFILES; else NEW_AFM_P1_NUM_DATAFILES=$2; fi;
+    if [ -z "$3" ] ; then NEW_SIZE_PARAM=$DEFAULT_SIZE; else NEW_SIZE_PARAM=$3; fi;
 
-	if [ -d "$1"/"$INSTANCE_NAME" ] ; then
+	if [ -d /tmp/"$INSTANCE_NAME" ] ; then
 
-		pushd . > /dev/null
-
-		cd "$1"
-
-		find "$INSTANCE_NAME" -maxdepth 1 -type f -name "*.sql" | xargs sed -i "s/DEFAULT_SIZE_PARAM/$NEW_SIZE_PARAM/g";
-
-		unset script
+		find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -name "*.sql" | xargs sed -i "s/DEFAULT_SIZE_PARAM/$NEW_SIZE_PARAM/g";
 
 		script=$(cat <<EOF
 SPOOL TBLSPACE.LST \n
@@ -105,31 +87,25 @@ EOF
 			
 		done;
 		
-		echo -en "$script" >> "$1"/"$INSTANCE_NAME"/tblspace.sql
-
-		popd
+		echo -en "$script" >> /tmp/"$INSTANCE_NAME"/tblspace.sql
 
 	else
-		echo "Directory "$1"/"$INSTANCE_NAME" inesistente";
+		echo "Directory /tmp/$INSTANCE_NAME inesistente";
 	fi;
 
 }
 
-# "$CWD" "$NEW_INSTANCE_NAME" "$N_DATAFILE" "$SIZE (MB)"
+# "$NEW_INSTANCE_NAME" "$N_DATAFILE" "$SIZE (MB)"
 genera-script-tablespace-AFM_BLOB() {
 
     # Carica i default se non specificato diversamente
-	if [ -z "$2" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$2; fi;
-    if [ -z "$3" ] ; then NEW_AFM_DOCMGMT_NUM_DATAFILES=$DEFAULT_AFM_DOCMGMT_NUM_DATAFILES; else NEW_AFM_DOCMGMT_NUM_DATAFILES=$3; fi;
-    if [ -z "$4" ] ; then NEW_SIZE_PARAM=$DEFAULT_SIZE; else NEW_SIZE_PARAM=$4; fi;
+	if [ -z "$1" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$1; fi;
+    if [ -z "$2" ] ; then NEW_AFM_DOCMGMT_NUM_DATAFILES=$DEFAULT_AFM_DOCMGMT_NUM_DATAFILES; else NEW_AFM_DOCMGMT_NUM_DATAFILES=$2; fi;
+    if [ -z "$3" ] ; then NEW_SIZE_PARAM=$DEFAULT_SIZE; else NEW_SIZE_PARAM=$3; fi;
 
-	if [ -d "$1"/"$INSTANCE_NAME" ] ; then
+	if [ -d /tmp/"$INSTANCE_NAME" ] ; then
 
-		pushd . > /dev/null
-
-		cd "$1"
-
-		find "$INSTANCE_NAME" -maxdepth 1 -type f -name "*.sql" | xargs sed -i "s/DEFAULT_SIZE_PARAM/$NEW_SIZE_PARAM/g";
+		find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -name "*.sql" | xargs sed -i "s/DEFAULT_SIZE_PARAM/$NEW_SIZE_PARAM/g";
 
 		unset script
 
@@ -159,12 +135,10 @@ EXIT \n
 EOF
 		)
 
-		echo -en "$script" >> "$1"/"$INSTANCE_NAME"/tblspace.sql
-
-		popd
+		echo -en "$script" >> /tmp/"$INSTANCE_NAME"/tblspace.sql
 
 	else
-		echo "Directory "$1"/"$INSTANCE_NAME" inesistente";
+		echo "Directory /tmp/$INSTANCE_NAME inesistente";
 	fi;
 
 }

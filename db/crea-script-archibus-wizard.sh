@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Wizard grafico di creazione degli script Archibus
+# @author Pucci
+# @date Monday, 03. November 2014
+#
 
 CWD=$(dirname $(realpath $0))
 choice="x";
@@ -6,13 +11,9 @@ NEW_INSTANCE_NAME="";
 NEW_AFM_PASSWORD="";
 
 finale(){
-  # demo - shows zenity return value(s)
   zenity --info \
-    --title="Zenity returned:" \
-    --window-icon=/usr/share/icons/gnome/22x22/emotes/face-worried.png \
-    --width=400 \
-    --text="$@"
-  [ $? -eq 1 ] && exit 0
+    --title="Creazione script completata" \
+    --text="Creazione script completata $NEW_INSTANCE_NAME"
 }
 
 # Verifica ed esegue il caricamento delle funzioni di help, per creare gli script
@@ -38,7 +39,7 @@ a() {
 	if [ $? -eq 1 ] ; then
 		exit 0;
 	else 
-		genera-script-base  "$CWD" "$NEW_INSTANCE_NAME"
+		genera-script-base  "$NEW_INSTANCE_NAME"
 	fi;
 
 }
@@ -62,7 +63,7 @@ b() {
 	else
 		if [ "$pwd1" == "$pwd2" ] ; then
             NEW_AFM_PASSWORD=$pwd1;
-			genera-script-cambio-password "$CWD" "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
+			genera-script-cambio-password "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
 		else
 			echo "Le password non coincidono";
             b;
@@ -73,19 +74,23 @@ b() {
 #  Definisci il numero di datafile per il tablespace AFM_P1 e la dimensione di ciascuno di essi
 c() {
 
+num_afm_p1_datafiles=$(zenity )
+
+    num_afm_p1_datafile=$(zenity --scale --text "Num. datafiles AFM_P1" --value="1" --min-value="1" --max-value="4" --step="1")
+
     datafile_afm_p1_size=$(zenity --scale --text "Dimensione datafiles AFM_P1" --value="1024" --min-value="1024" --max-value="32768" --step="500")
 
-	genera-script-tablespace-AFM_P1 "$CWD" "$NEW_INSTANCE_NAME" 4 "$datafile_afm_p1_size"M
+	genera-script-tablespace-AFM_P1 "$NEW_INSTANCE_NAME" "$num_afm_p1_datafiles" "$datafile_afm_p1_size"M
 }
 
 #  Definisci il numero di datafile per il tablespace documentale e la dimensione di ciascuno di essi
 d() {
 
+    num_afm_blob_datafile=$(zenity --scale --text "Num. datafiles AFM_DOCMGMT" --value="1" --min-value="1" --max-value="16" --step="1")
+
     datafile_afm_blob_size=$(zenity --scale --text "Dimensione datafiles AFM_DOCMGMT" --value="1024" --min-value="1024" --max-value="32768" --step="500")
 
-    echo $datafile_afm_blob_size;
-
-	genera-script-tablespace-AFM_BLOB "$CWD" "$NEW_INSTANCE_NAME" 16 "$datafile_afm_blob_size"M
+	genera-script-tablespace-AFM_BLOB "$NEW_INSTANCE_NAME" 16 "$datafile_afm_blob_size"M
 }
 
 showmenu() {
@@ -115,8 +120,12 @@ showmenu() {
 
 }
 
-# Main Loop
+############################################ Main Loop ############################################
+
 checkRequired;
 while [ ! "$choice" == "d" ] ; do
   showmenu;
 done;
+finale && exit 0;
+
+###################################################################################################
