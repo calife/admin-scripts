@@ -63,6 +63,8 @@ genera-script-cambio-password() {
 # "$CWD" "$NEW_INSTANCE_NAME" "$N_DATAFILE" "$SIZE (MB)"
 genera-script-tablespace-AFM_P1() {
 
+echo "---------------------- "$4
+
     # Carica i default se non specificato diversamente
 	if [ -z "$2" ] ; then INSTANCE_NAME=$DEFAULT_INSTANCE_NAME; else INSTANCE_NAME=$2; fi;
     if [ -z "$3" ] ; then NEW_AFM_P1_NUM_DATAFILES=$DEFAULT_AFM_P1_NUM_DATAFILES; else NEW_AFM_P1_NUM_DATAFILES=$3; fi;

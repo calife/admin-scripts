@@ -63,7 +63,7 @@ b() {
 		if [ "$pwd1" == "$pwd2" ] ; then
             NEW_AFM_PASSWORD=$pwd1;
 			genera-script-cambio-password "$CWD" "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
-		else 
+		else
 			echo "Le password non coincidono";
             b;
 		fi;
@@ -72,12 +72,20 @@ b() {
 
 #  Definisci il numero di datafile per il tablespace AFM_P1 e la dimensione di ciascuno di essi
 c() {
-	genera-script-tablespace-AFM_P1 "$CWD" "$NEW_INSTANCE_NAME" 4 "4096M"
+
+    datafile_afm_p1_size=$(zenity --scale --text "Dimensione datafiles AFM_P1" --value="1024" --min-value="1024" --max-value="32768" --step="500")
+
+	genera-script-tablespace-AFM_P1 "$CWD" "$NEW_INSTANCE_NAME" 4 "$datafile_afm_p1_size"M
 }
 
 #  Definisci il numero di datafile per il tablespace documentale e la dimensione di ciascuno di essi
 d() {
-	genera-script-tablespace-AFM_BLOB "$CWD" "$NEW_INSTANCE_NAME" 16 "4096M"
+
+    datafile_afm_blob_size=$(zenity --scale --text "Dimensione datafiles AFM_DOCMGMT" --value="1024" --min-value="1024" --max-value="32768" --step="500")
+
+    echo $datafile_afm_blob_size;
+
+	genera-script-tablespace-AFM_BLOB "$CWD" "$NEW_INSTANCE_NAME" 16 "$datafile_afm_blob_size"M
 }
 
 showmenu() {
