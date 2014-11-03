@@ -1,6 +1,16 @@
 #!/bin/bash
 #
 # Wizard grafico di creazione degli script Archibus
+# Link Utili:
+# http://linuxaria.com/howto/introduction-zenity-bash-gu
+# http://www.linux.org/threads/zenity-gui-for-shell-scripts.5567/
+# http://jamesslocum.com/post/61904545275
+# http://techpad.co.uk/content.php?sid=90
+#
+# @depends:  zenity
+
+# @TODO fornita una lista di banche dati, estrarre la definizione dei datafile per la banca dati selezionata e richiamare la funzionalità di cui sopra.
+
 # @author Pucci
 # @date Monday, 03. November 2014
 #
@@ -13,12 +23,15 @@ NEW_AFM_PASSWORD="";
 finale(){
   zenity --info \
     --title="Creazione script completata" \
-    --text="Creazione script completata $NEW_INSTANCE_NAME"
+    --text="Script generati in /tmp/$NEW_INSTANCE_NAME"
 }
 
-# Verifica ed esegue il caricamento delle funzioni di help, per creare gli script
+# Verifica ed esegue il caricamento delle funzioni di help e della libreria zenity, per creare gli script
 checkRequired() {
-	if [ ! -f ${CWD}/helper-func ] ; then
+
+	type zenity > /dev/null || { echo "[$0] Il pacchetto zenity non è installato"; exit 1; } # check zenity
+
+	if [ ! -f ${CWD}/helper-func ] ; then # check helper-func
 		echo "Missing helper-func";
 		exit 1;
 	else 
@@ -27,7 +40,7 @@ checkRequired() {
 }
 
 # Crea gli script di base per l' istanza
-a() {
+base() {
 	NEW_INSTANCE_NAME=$( \
 		zenity --entry \
 		--title="Creazione script per la nuova istanza $NEW_INSTANCE_NAME" \
@@ -45,7 +58,7 @@ a() {
 }
 
 # Crea gli script per il cambio password degli utenti AFM e AFM_SECURE
-b() {
+password() {
 	cfgpass=$( \
         zenity --forms \
 		--title="Cambio password per gli utenti AFM e AFM_SECURE , istanza $NEW_INSTANCE_NAME" \
@@ -66,17 +79,16 @@ b() {
 			genera-script-cambio-password "$NEW_INSTANCE_NAME" "$NEW_AFM_PASSWORD"
 		else
 			echo "Le password non coincidono";
-            b;
+            password;
 		fi;
 	fi;
 }
 
 #  Definisci il numero di datafile per il tablespace AFM_P1 e la dimensione di ciascuno di essi
-c() {
+#  TODO: prevedere il passaggio di un array con i datafiles e la dimensione
+tblspace_p() {
 
-num_afm_p1_datafiles=$(zenity )
-
-    num_afm_p1_datafile=$(zenity --scale --text "Num. datafiles AFM_P1" --value="1" --min-value="1" --max-value="4" --step="1")
+    num_afm_p1_datafile=$(zenity --scale --text "Num. datafiles AFM_P1" --value="1" --min-value="1" --max-value="16" --step="1")
 
     datafile_afm_p1_size=$(zenity --scale --text "Dimensione datafiles AFM_P1" --value="1024" --min-value="1024" --max-value="32768" --step="500")
 
@@ -84,13 +96,14 @@ num_afm_p1_datafiles=$(zenity )
 }
 
 #  Definisci il numero di datafile per il tablespace documentale e la dimensione di ciascuno di essi
-d() {
+#  TODO: prevedere il passaggio di un array con i datafiles e la dimensione
+tblspace_doc() {
 
     num_afm_blob_datafile=$(zenity --scale --text "Num. datafiles AFM_DOCMGMT" --value="1" --min-value="1" --max-value="16" --step="1")
 
     datafile_afm_blob_size=$(zenity --scale --text "Dimensione datafiles AFM_DOCMGMT" --value="1024" --min-value="1024" --max-value="32768" --step="500")
 
-	genera-script-tablespace-AFM_BLOB "$NEW_INSTANCE_NAME" 16 "$datafile_afm_blob_size"M
+	genera-script-tablespace-AFM_BLOB "$NEW_INSTANCE_NAME" "$num_afm_blob_datafile" "$datafile_afm_blob_size"M
 }
 
 showmenu() {
@@ -107,10 +120,10 @@ showmenu() {
 			--column="Option" \
 			--column="Descrizione" \
 			--hide-column=2 \
-			$( [ x$choice == xx ] && echo TRUE || echo FALSE )  a "Script di base" "Genera gli script di base"\
-	        $( [  $choice == a  ] && echo TRUE || echo FALSE )  b "Cambia password" "Cambia password agli utenti AFM e AFM_SECURE"\
-	        $( [  $choice == b  ] && echo TRUE || echo FALSE )  c "Modifica Tablespace AFM_P1" "Modifica Tablespace Dati" \
-	        $( [  $choice == c  ] && echo TRUE || echo FALSE )  d "Modifica Tablespace AFMDOCMGMT_BLOB" "Modifica Tablespace Documentale" \
+			$( [ x$choice == xx ] && echo TRUE || echo FALSE )  base "Script di base" "Genera gli script di base"\
+	        $( [  $choice == base  ] && echo TRUE || echo FALSE )  password "Cambia password" "Cambia password agli utenti AFM e AFM_SECURE"\
+	        $( [  $choice == password  ] && echo TRUE || echo FALSE )  tblspace_p "Modifica Tablespace AFM_P1" "Modifica Tablespace Dati" \
+	        $( [  $choice == tblspace_p  ] && echo TRUE || echo FALSE )  tblspace_doc "Modifica Tablespace AFMDOCMGMT_BLOB" "Modifica Tablespace Documentale" \
 
 	)
 
@@ -123,7 +136,7 @@ showmenu() {
 ############################################ Main Loop ############################################
 
 checkRequired;
-while [ ! "$choice" == "d" ] ; do
+while [ ! "$choice" == "tblspace_doc" ] ; do
   showmenu;
 done;
 finale && exit 0;
