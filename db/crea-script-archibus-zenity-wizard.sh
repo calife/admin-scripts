@@ -1,16 +1,9 @@
 #!/bin/bash
 #
 # Wizard grafico di creazione degli script Archibus
-# Link Utili:
-# http://linuxaria.com/howto/introduction-zenity-bash-gu
-# http://www.linux.org/threads/zenity-gui-for-shell-scripts.5567/
-# http://jamesslocum.com/post/61904545275
-# http://techpad.co.uk/content.php?sid=90
 #
 # @depends:  zenity
-
-# @TODO fornita una lista di banche dati, estrarre la definizione dei datafile per la banca dati selezionata e richiamare la funzionalità di cui sopra.
-
+#
 # @author Pucci
 # @date Monday, 03. November 2014
 #
