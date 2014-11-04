@@ -1,6 +1,9 @@
 admin-scripts
 ======
 **admin-scripts** è una collezione di script scritti per eseguire compiti di amministrazione comuni.
+\-> **/db/** contiene gli script per la gestione dei database (creazione degli script per archibus, ecc ...)
+\->
+\->
 
 ## Download
 * [Version dev](https://codeload.github.com/calife/admin-scripts/zip/dev/admin-scripts-dev.zip)
