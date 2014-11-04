@@ -12,6 +12,8 @@ NEW_AFM_PASSWORD="";
 # Verifica ed esegue il caricamento delle funzioni di help e della libreria zenity, per creare gli script
 checkRequired() {
 
+	type realpath > /dev/null || { echo "[$0] Il pacchetto realpath non è installato"; exit 1; } # check realpath
+
 	if [ ! -f ${CWD}/helper-func ] ; then # check helper-func
 		echo "Missing helper-func";
 		exit 1;
