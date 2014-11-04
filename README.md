@@ -16,13 +16,13 @@ admin-scripts
 * see [LIBRARIES](https://github.com/GNOME/zenity) files
 
 ## License 
-* see [LICENSE](https://github.com/username/sw-name/blob/master/LICENSE.md) files
+* see [LICENSE](https://github.com/calife/admin-scripts/blob/dev/LICENSE.md) files
 
 ## Version 
 * Version 0.1
 
 ## How-to use this code
-* see [INSTRUCTIONS](https://github.com/calife/admin-scripts/INSTRUCTIONS.md) files
+* see [INSTRUCTIONS](https://github.com/calife/admin-scripts/blob/dev/INSTRUCTIONS.md) files
 
 ## Links
 * http://linuxaria.com/howto/introduction-zenity-bash-gu
