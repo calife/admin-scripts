@@ -2,13 +2,6 @@
 # Thursday, 16. October 2014
 #
 # Script di creazione degli script oracle di BASE, a partire da un TEMPLATE comune.
-# !!!! Applicazione con interfaccia grafica !!!!
-#
-# Link Utili:
-# http://linuxaria.com/howto/introduction-zenity-bash-gu
-# http://www.linux.org/threads/zenity-gui-for-shell-scripts.5567/
-# http://jamesslocum.com/post/61904545275
-# http://techpad.co.uk/content.php?sid=90
 #
 # @depends:  zenity
 
@@ -36,11 +29,6 @@ checkRequired() {
 }
 
 Usage() {
-	MSG=$(cat <<SETVAR
-Help:
-` basename $0`  new_instance_name
-SETVAR
-	)
 	case $1 in
 		error)
 			zenity --error --title "Errore" --text="$2"
@@ -63,7 +51,7 @@ askNomeIstanza(){
 	if [ "$?" -eq "0" ] ; then
 		return 1;
 	else
-		return 0;
+		exit 0;
 	fi;
 }
 
@@ -74,7 +62,7 @@ askConfirm() {
 	if [ "$?" -eq "0" ] ; then
 		return 1;
 	else
-		return 0;
+		exit 0;
 	fi;	
 }
 
@@ -111,6 +99,10 @@ if [ x"$NEW_INSTANCE_NAME" != x ] ; then
 		finale
 
 	fi;
+
+else 
+
+	Usage error "Specificare il nome dell' istanza da creare"
 
 fi;
 

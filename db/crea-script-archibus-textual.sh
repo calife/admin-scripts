@@ -5,7 +5,21 @@
 #
 #
 
-echo -n " Start... "
+CWD=$(dirname $(realpath $0))
+NEW_INSTANCE_NAME="";
+NEW_AFM_PASSWORD="";
+
+# Verifica ed esegue il caricamento delle funzioni di help e della libreria zenity, per creare gli script
+checkRequired() {
+
+	if [ ! -f ${CWD}/helper-func ] ; then # check helper-func
+		echo "Missing helper-func";
+		exit 1;
+	else 
+		. ${CWD}/helper-func
+	fi;
+}
+
 
 Usage() {
 	echo " "
@@ -34,6 +48,10 @@ AskConfirm() {
 	done;
 }
 
+############################################ Main ##############################################
+
+checkRequired
+
 if [ $# -eq 1 ]; then
 	case "$1" in
 		"" ) Usage; exit 0;;
@@ -42,19 +60,22 @@ if [ $# -eq 1 ]; then
 
 			NEW_INSTANCE_NAME=$1;
 
-			AskConfirm "Vuoi rinominare gli script  per la nuova istanza "$NEW_INSTANCE_NAME" ?[y/n] ";
+			AskConfirm "Vuoi creare gli script  per la nuova istanza "$NEW_INSTANCE_NAME" ?[y/n] ";
 
 			if [ $? != 0 ]; then
 
-				cp -a TEMPLATE $NEW_INSTANCE_NAME;
+				echo " Start... "
 
-   			    find $NEW_INSTANCE_NAME -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$NEW_INSTANCE_NAME/g"; \
+				genera-script-base  "$NEW_INSTANCE_NAME"
 
-   			    cd $NEW_INSTANCE_NAME && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$NEW_INSTANCE_NAME} ; done;
+				genera-script-cambio-password  "$NEW_INSTANCE_NAME"
 
+				genera-script-tablespace-AFM_P1 "$NEW_INSTANCE_NAME"
+
+				genera-script-tablespace-AFM_BLOB "$NEW_INSTANCE_NAME"
+
+				echo " ...Script creati in /tmp/$NEW_INSTANCE_NAME"
 			fi;
-
-			echo " ...Leave";
 
 			exit 0;
 
@@ -64,3 +85,5 @@ else
 	echo "Il numero di parametri forniti non e' corretto"
 	exit 1;
 fi;
+
+#####################################################################################################
