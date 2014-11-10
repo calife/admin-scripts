@@ -26,7 +26,11 @@ genera-script-base() {
 
 	find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -a \( -name '*.sql' -o -name '*.sh' \) | xargs sed -i "s/TEMPLATE/$INSTANCE_NAME/g";
 
-	cd /tmp/"$INSTANCE_NAME" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$INSTANCE_NAME} ; done;
+        TMP_DEFAULT_ORADATA_DIR=${DEFAULT_ORADATA_DIR//\//\\/}    # replace ALL / with \/
+
+		find /tmp/"$INSTANCE_NAME" -maxdepth 1 -type f -a \( -name '*.sql' \) | xargs sed -i "s/DEFAULT_ORADATA_PARAM/$TMP_DEFAULT_ORADATA_DIR/g";
+
+		cd /tmp/"$INSTANCE_NAME" && find . -type f -name "*TEMPLATE*"|while read f; do mv $f ${f/TEMPLATE/$INSTANCE_NAME} ; done;
 
 	popd
 
@@ -72,14 +76,14 @@ EOF
 			if [ "$datafile_idx" -eq 1 ] ; then
 
 				script+=$(cat <<EOF
-ALTER DATABASE DATAFILE '/opt/oracle/oradata/$INSTANCE_NAME/AFM_P1.dbf' AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
+ALTER DATABASE DATAFILE '$DEFAULT_ORADATA_DIR/$INSTANCE_NAME/AFM_P1.dbf' AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
 EOF
 				)
 
 			else
 
 				script+=$(cat <<EOF
-ALTER TABLESPACE "AFM_P1" ADD DATAFILE '/opt/oracle/oradata/$INSTANCE_NAME/AFM_P$datafile_idx.dbf' SIZE $NEW_SIZE_PARAM AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
+ALTER TABLESPACE "AFM_P1" ADD DATAFILE '$DEFAULT_ORADATA_DIR/$INSTANCE_NAME/AFM_P$datafile_idx.dbf' SIZE $NEW_SIZE_PARAM AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
 EOF
 				)
 
@@ -114,14 +118,14 @@ genera-script-tablespace-AFM_BLOB() {
 			if [ "$datafile_idx" -eq 1 ] ; then
 
 				script+=$(cat <<EOF
-ALTER DATABASE DATAFILE '/opt/oracle/oradata/$INSTANCE_NAME/AFMDOCMGMT_BLOB1.dbf' AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
+ALTER DATABASE DATAFILE '$DEFAULT_ORADATA_DIR/$INSTANCE_NAME/AFMDOCMGMT_BLOB1.dbf' AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
 EOF
 				)
 
 			else
 
 				script+=$(cat <<EOF
-ALTER TABLESPACE "AFMDOCMGMT_BLOB" ADD DATAFILE '/opt/oracle/oradata/$INSTANCE_NAME/AFMDOCMGMT_BLOB$datafile_idx.dbf' SIZE $NEW_SIZE_PARAM AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
+ALTER TABLESPACE "AFMDOCMGMT_BLOB" ADD DATAFILE '$DEFAULT_ORADATA_DIR/$INSTANCE_NAME/AFMDOCMGMT_BLOB$datafile_idx.dbf' SIZE $NEW_SIZE_PARAM AUTOEXTEND ON NEXT 500M MAXSIZE $NEW_SIZE_PARAM; \n
 EOF
 				)
 
