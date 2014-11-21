@@ -109,7 +109,27 @@ svn_import_archibus() {
 
 # Elenca le versioni di Archibus WebCentral disponibili
 svn_show_repository() {
-	return;
+
+	unset MESSAGGIO
+
+	read -p "Repository da amministrare > " NOME_REPOS
+
+	if [  -z "$NOME_REPOS" ] ; then
+		svn_admin_user;
+	fi;
+
+	if [ ! -d "$SVN_ROOT"/"$NOME_REPOS" ] ; then
+		MESSAGGIO="Il repository $NOME_REPOS non esiste..."
+		return $CODE_ERROR
+	else
+
+		MESSAGGIO=$(printf  " | %-80s \n\n " "Informazioni repository $SVN_URL/$NOME_REPOS in data $(date --iso)  ")
+		MESSAGGIO+=$(cat "$SVN_ROOT"/"$NOME_REPOS"/conf/passwd |grep -v "^#"|grep -v "^$")
+
+		return $CODE_SUCCESS
+
+	fi; 
+
 }
 
 # Scarica la versione di Archibus WebCentral in formato war
@@ -117,46 +137,114 @@ download_archibus() {
 	::::
 }
 
-# Mostra il menu di amministrazione degli utenti
-showadminmenu() {
+repository_exists() {
 
-	echo " Replace in file svnserve.conf , append user to passwd (files)"
+	unset MESSAGGIO
 
-	# comandi_amministrazione=(
-	# 	"Creazione utente      "
-	# 	"Elimina utente        "
-	# 	"Elenca utenti         "
-	# 	"Cambia password       "
-    # );
+	read -p "Repository> " NOME_REPOS
 
-	# while true; do
+	if [  -z "$NOME_REPOS" ] ; then
+		show_admin_menu;
+	fi;
 
-	# 	echo -en "\n### Menu per la gestione degli utenti  ###\n"
+	if [ ! -d "$SVN_ROOT"/"$NOME_REPOS" ] ; then
+		MESSAGGIO="Il repository $NOME_REPOS non esiste..."
+		return $CODE_ERROR
+	else
+		return $CODE_SUCCESS
+	fi; 
+}
 
-	# 	PS3="${LRED}$MESSAGGIO${RESET_PS3_COLOR} Scegli un' azione _$ "
+svn_show_user() {
+	unset MESSAGGIO
+	MESSAGGIO+=$(cat "$SVN_ROOT"/"$NOME_REPOS"/conf/passwd |grep -v "^#"|grep -v "^$")
+}
 
-	# 	select command in "${comandi_amministrazione[@]}" "Quit" ; do
+svn_add_user() {
+	unset MESSAGGIO
 
-	# 		case $REPLY in
-	# 			5|quit)
-	# 				return $CODE_SUCCESS
-	# 				break;;
-	# 			*) 
-	# 				unset MESSAGGIO
-	# 				MESSAGGIO="Opzione $REPLY non valida"
-    #                 break;;
-	# 		esac;
+	local username
+	local password	
 
-	# 	done;
+	read -p "Username> " username
+	if [  -z "$username" ] ; then
+		svn_add_user;
+	fi;
 
-	# done;
+	read -p "Password> " password
+	if [  -z "$password" ] ; then
+		svn_add_user;
+	fi;
+
+	row=$(echo "$username = $password")
+
+    sudo sh -c " echo $row >> $SVN_ROOT"/"$NOME_REPOS/conf/passwd "
+
+	if [ "$?" -eq 0  ] ; then
+		MESSAGGIO="Utenza $username creata"
+		return $CODE_SUCCESS
+	else
+		MESSAGGIO="Errore in fase di creazione dell' utenza ..."
+		return $CODE_ERROR
+	fi;
 
 }
 
+svn_rm_user() {
+	unset MESSAGGIO
+
+	local username
+
+	read -p "Username> " username
+	if [  -z "$username" ] ; then
+		svn_rm_user;
+	fi;
+
+	echo $username
+
+    sudo sh -c " sed -i \"/^$username[ ]*=.*/d\" \"$SVN_ROOT/$NOME_REPOS/conf/passwd\" "
+
+	if [ "$?" -eq 0  ] ; then
+		MESSAGGIO="Utenza $username rimossa"
+		return $CODE_SUCCESS
+	else
+		MESSAGGIO="Errore in fase di cancellazione dell' utenza ..."
+		return $CODE_ERROR
+	fi;
+
+}
+
+svn_change_pwd() {
+	unset MESSAGGIO
+
+	local username
+
+	read -p "Username> " username
+	if [  -z "$username" ] ; then
+		svn_rm_user;
+	fi;
+
+	read -p "Password> " password
+	if [  -z "$password" ] ; then
+		svn_add_user;
+	fi;
+
+	row=$(echo "$username = $password")
+
+    sudo sh -c " sed -i \"s/^$username[ ]*=.*/$row/g\" \"$SVN_ROOT/$NOME_REPOS/conf/passwd\" "
+
+	if [ "$?" -eq 0  ] ; then
+		MESSAGGIO="Password cambiata"
+		return $CODE_SUCCESS
+	else
+		MESSAGGIO="Errore in modifica password ..."
+		return $CODE_ERROR
+	fi;
+}
 
 show_main_menu() {
 
-	comandi=(
+	local comandi=(
 		"Elenca repository                        "
 		"Crea repository                          "
 		"Amministrazione utenti                   "
@@ -164,6 +252,14 @@ show_main_menu() {
 		"Visualizza informazioni repository       "
 		"Quit                                     "
 	);
+
+	local comandi_admin_users=(
+		"Elenca utenti"
+		"Crea utente"
+		"Elimina utente"
+		"Cambia password"
+        "Quit"
+    );
 
 	while true; do
 
@@ -177,39 +273,80 @@ show_main_menu() {
 
 				"Elenca repository"*)
 					svn_list_repositories
-					break
-					;;
+					clear
+					break;;
+
 				"Crea repository"*)
 					svn_create_repository
-					break
-					;;
+					clear
+					break;;
+
 				"Amministrazione utenti"*)
-					svn_admin_user
-					break
+
+					repository_exists
+
+					if [ $? -eq 0 ] ; then
+						
+						while true; do
+
+							echo -en "\n### Menu per la gestione del repository  $SVN_URL/$NOME_REPOS  ###\n"
+							PS3="${LRED}$MESSAGGIO${RESET_PS3_COLOR}"$'\n'"Scegli un' azione _$ "
+							select subadminopt in "${comandi_admin_users[@]}" ; do
+
+								case $subadminopt in
+
+									"Elenca utenti")
+										svn_show_user
+										break;
+										;;
+									"Crea utente")
+										svn_add_user
+										break;
+										;;
+									"Elimina utente")
+										svn_rm_user
+										break;
+										;;
+									"Cambia password")
+										svn_change_pwd
+										break;
+										;;
+									"Quit")
+										unset MESSAGGIO
+										clear
+										break 2
+										;;
+
+								esac;
+
+							done;
+
+						done;
+
+					fi;
+
+					break;
+
 					;;
 				"Caricamento di Archibus Webcentral"*)
 					svn_import_archibus
-					break
-					;;
+					clear
+					break;;
 				"Visualizza informazioni repository"*)
 					svn_show_repository
-					break
-					;;
+					clear
+					break;;
 				"Quit"*)
+					unset MESSAGGIO
 					echo "Quit";
-					exit
-					;;
+					exit;;
 				*) 
 					unset MESSAGGIO			
 					clear	
                     break;;
 			esac
 
-
-
 		done;
-
-clear
 
 	done;
 
