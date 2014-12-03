@@ -6,6 +6,10 @@
 SVN_URL="svn://localhost"
 SVN_ROOT="/var/svn"
 NOME_REPOS=""
+WEBCENTRAL_REPOS="/var/archibus"
+
+ADMIN_USER="supporto"
+ADMIN_PWD="07metallo"
 
 CODE_SUCCESS=0;
 CODE_ERROR=1;
@@ -41,7 +45,9 @@ svn_list_repositories() {
 	MESSAGGIO="OUTPUT:"
 	MESSAGGIO+=$(printf  "  %-80s    \n " "   ")
 	MESSAGGIO+=$(printf  "  %-80s    \n\n\n " "Elenco dei repository in data $(date --iso)  ")
-	MESSAGGIO+=$(repos=(`ls -1 "$SVN_ROOT"/`) ; printf "\t%-40s%-40s%-40s\n" "${repos[@]}")
+	MESSAGGIO+=$(repos=(`ls -1 "$SVN_ROOT"/`) ; 
+
+    printf "\t%-40s%-40s%-40s\n" "${repos[@]}")
 	
 	return $CODE_SUCCESS
 
@@ -59,7 +65,7 @@ svn_create_repository() {
 
 	else
 
-		if [ -d "$SVN_ROOT"/"$NOME_REPOS" ] ; then 
+		if [ -d "$SVN_ROOT"/"$NOME_REPOS" ] ; then
 			MESSAGGIO="ERROR:Repository $NOME_REPOS già esistente..."
 			return $CODE_ERROR
 		fi;
@@ -69,9 +75,12 @@ svn_create_repository() {
 
 			sudo  -p "Inserisci la password per sudo > " sh -c " sed -i \"s/# password-db = passwd/password-db = passwd/g\" \"$SVN_ROOT/$NOME_REPOS/conf/svnserve.conf\"  "
 
+        	row=$(echo "$ADMIN_USER = $ADMIN_PWD")
+            sudo  -p "Inserisci la password per sudo > " sh -c " echo $row >> $SVN_ROOT"/"$NOME_REPOS/conf/passwd "
+
 			MESSAGGIO="SUCCESS:Repository $NOME_REPOS creato"
 			return $CODE_SUCCESS
-		eles
+		else
 			MESSAGGIO="ERROR:Errore in svnadmin create..."
 			return $CODE_ERROR
 		fi;
@@ -117,7 +126,10 @@ svn_show_users() {
 	unset MESSAGGIO
 
 	MESSAGGIO="OUTPUT:"
-	MESSAGGIO+=$(cat "$SVN_ROOT"/"$NOME_REPOS"/conf/passwd |grep -v "^#"|grep -v "^$")
+	MESSAGGIO+=$(printf  "  \n %-80s    \n " "[Users]")
+	str=`cat "$SVN_ROOT"/"$NOME_REPOS"/conf/passwd |grep -v "^#"|grep -v "^$"|grep -v "\[users\]"|sed -n 's/^\(.*\)=.*$/\1/p' `
+    MESSAGGIO+=$(printf  "  %-5s\n " `echo "$str"`)
+
 }
 
 svn_add_user() {
@@ -218,27 +230,35 @@ svn_change_pwd() {
 	fi;
 }
 
-
-# Scarica la versione di Archibus WebCentral in formato war
-download_archibus() {
-	::::
-}
-
 # Importa una specifica versione di Archibus WebCentral all' interno del trunk del repository
 svn_import_archibus() {
+	unset MESSAGGIO
 
-	return;
+	if [ ! -f "$WEBCENTRAL_REPOS/WebCv$1_WAR.zip" ] ; then
+		MESSAGGIO="ERROR:Il file $WEBCENTRAL_REPOS/WebCv$1_WAR.zip non esiste..."
+		return $CODE_ERROR
+	else
 
-	test -z "$NOME_REPOS" && (echo "Repository non specificato...exit"; exit 0)
-	test -d "$SVN_ROOT"/"$NOME_REPOS" || ( echo "Repository $NOME_REPOS inesistente ...exit" ; exit 0; )
+		for folder in trunk tags branches; do
+            svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder" 
+		done;
 
-	# svn import -m "Initial import" archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
+		pushd .
+        tmpdir=`mktemp -d` && mkdir $tmpdir/archibus && \
+		unzip "$WEBCENTRAL_REPOS/WebCv$1_WAR.zip" -d $tmpdir && \
+		unzip $tmpdir/archibus.war -d $tmpdir/archibus && \
+		cd $tmpdir && svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  import -m "Initial import versione $WEBCENTRAL_REPOS/WebCv$1_WAR.zip " archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
+		popd && rm -rf $tmpdir
 
-	for i in trunk tags branches; do
-		svn mkdir "$SVN_URL"/"$NOME_REPOS"/$i -m "Creating $i folder"  >/dev/null 2>&1
-		svn mkdir "$SVN_URL"/"$NOME_REPOS"/$i -m "Creating $i folder"  >/dev/null 2>&1
-		svn mkdir "$SVN_URL"/"$NOME_REPOS"/$i -m "Creating $i folder"  >/dev/null 2>&1
-	done;
+		if [ "$?" -eq 0  ] ; then
+			MESSAGGIO="SUCCESS:Versione $1 importata correttamente in $SVN_URL/$NOME_REPOS/trunk/archibus"
+			return $CODE_SUCCESS
+		else
+			MESSAGGIO="ERROR:Errore in fase di importazione della versione $1..."
+			return $CODE_ERROR
+		fi;
+
+	fi;
 
 }
 
@@ -283,7 +303,7 @@ show_main_menu() {
 
 	local comandi=(
 		"Elenca repository                        "
-		"Crea repository                          "
+		"Crea repository standard                 "
 		"Menu Amministrazione utenti              "
 		"Visualizza informazioni repository       "
 		"Quit                                     "
@@ -296,6 +316,12 @@ show_main_menu() {
 		"Cambia password"
         "Quit"
     );
+
+    local webcentral_array=(`ls -1 "$WEBCENTRAL_REPOS"/ `)
+
+    # Versioni di archibus nel formato 
+	webcentral_array=(${webcentral_array[@]/"WebCv"/})
+	webcentral_array=(${webcentral_array[@]/"_WAR.zip"/})
 
 	while true; do
 
@@ -312,13 +338,47 @@ show_main_menu() {
 					clear
 					break;;
 
-				"Crea repository"*)
+				"Crea repository standard"*)
 					svn_create_repository
-					clear
+
+					if [ $? -eq 0 ] ; then
+
+						unset MESSAGGIO
+
+						while true; do
+
+							echo -en "\n Catalogo delle versioni di WebCentral disponibili in $WEBCENTRAL_REPOS \n"
+
+							PS3="Scegli una versione di WebCentral>"
+
+							select subadminopt in "${webcentral_array[@]}                         " "Quit" ; do
+
+								case $subadminopt in
+
+									"Quit")
+										unset MESSAGGIO
+										clear
+										break 2
+										;;
+
+									*)
+										unset MESSAGGIO
+										svn_import_archibus "$subadminopt"
+										echo "Import della versione $subadminopt"
+										break 2
+										;;
+
+								esac;
+
+							done;
+
+						done;
+
+					fi;
+
 					break;;
 
 				"Menu Amministrazione utenti"*)
-
 					repository_exists
 
 					if [ $? -eq 0 ] ; then
