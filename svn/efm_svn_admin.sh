@@ -57,7 +57,7 @@ svn_create_repository() {
 
 	unset MESSAGGIO
 
-	read -p "Repository da creare > " NOME_REPOS
+	read -p "Nome del repository da creare > " NOME_REPOS
 	
 	if [  -z "$NOME_REPOS" ] ; then
 
@@ -230,31 +230,43 @@ svn_change_pwd() {
 	fi;
 }
 
-# Importa una specifica versione di Archibus WebCentral all' interno del trunk del repository
 svn_import_archibus() {
+
 	unset MESSAGGIO
 
-	if [ ! -f "$WEBCENTRAL_REPOS/WebCv$1_WAR.zip" ] ; then
-		MESSAGGIO="ERROR:Il file $WEBCENTRAL_REPOS/WebCv$1_WAR.zip non esiste..."
+	zipfile=$WEBCENTRAL_REPOS/WebCv$1_WAR.zip
+    zipfile=$(echo -n "${zipfile//[[:space:]]/}")
+
+	if [ ! -f "$zipfile" ] ; then
+		MESSAGGIO="ERROR:Il file $zipfile non esiste..."
 		return $CODE_ERROR
 	else
 
+        # Crea la struttura dei folder
 		for folder in trunk tags branches; do
-            svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder" 
+            svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder"
 		done;
 
-		pushd .
-        tmpdir=`mktemp -d` && mkdir $tmpdir/archibus && \
-		unzip "$WEBCENTRAL_REPOS/WebCv$1_WAR.zip" -d $tmpdir && \
-		unzip $tmpdir/archibus.war -d $tmpdir/archibus && \
-		cd $tmpdir && svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  import -m "Initial import versione $WEBCENTRAL_REPOS/WebCv$1_WAR.zip " archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
-		popd && rm -rf $tmpdir
-
 		if [ "$?" -eq 0  ] ; then
-			MESSAGGIO="SUCCESS:Versione $1 importata correttamente in $SVN_URL/$NOME_REPOS/trunk/archibus"
-			return $CODE_SUCCESS
+
+            # Importa nel trunk
+			pushd .
+			tmpdir=`mktemp -d` && mkdir $tmpdir/archibus && \
+				unzip "$zipfile" -d $tmpdir && \
+				unzip $tmpdir/archibus.war -d $tmpdir/archibus && \
+				cd $tmpdir && svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  import -m "Initial import versione $zipfile " archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
+			popd && rm -rf $tmpdir
+
+			if [ "$?" -eq 0  ] ; then
+				MESSAGGIO="SUCCESS:Versione $1 importata correttamente in $SVN_URL/$NOME_REPOS/trunk/archibus"
+				return $CODE_SUCCESS
+			else
+				MESSAGGIO="ERROR:Errore in fase di importazione della versione $1..."
+				return $CODE_ERROR
+			fi;
+
 		else
-			MESSAGGIO="ERROR:Errore in fase di importazione della versione $1..."
+			MESSAGGIO="ERROR:Impossibile stabilire una connessione con svn ..."
 			return $CODE_ERROR
 		fi;
 
@@ -302,11 +314,11 @@ decorate_prompt() {
 show_main_menu() {
 
 	local comandi=(
-		"Elenca repository                        "
-		"Crea repository standard                 "
-		"Menu Amministrazione utenti              "
-		"Visualizza informazioni repository       "
-		"Quit                                     "
+		"Elenca repository                          "
+		"Crea repository standard                   "
+		"Menu Amministrazione utenti del repository "
+		"Visualizza informazioni repository         "
+		"Quit                                       "
 	);
 
 	local comandi_admin_users=(
@@ -339,17 +351,16 @@ show_main_menu() {
 					break;;
 
 				"Crea repository standard"*)
-					svn_create_repository
-
+					
 					if [ $? -eq 0 ] ; then
 
 						unset MESSAGGIO
 
 						while true; do
 
-							echo -en "\n Catalogo delle versioni di WebCentral disponibili in $WEBCENTRAL_REPOS \n"
+							echo -en "\nCatalogo WebCentral disponibili\n"
 
-							PS3="Scegli una versione di WebCentral>"
+							PS3="Scegli una versione di WebCentral da caricare [1-${#webcentral_array[@]}] >"
 
 							select subadminopt in "${webcentral_array[@]}                         " "Quit" ; do
 
@@ -363,11 +374,21 @@ show_main_menu() {
 
 									*)
 										unset MESSAGGIO
-										svn_import_archibus "$subadminopt"
-										echo "Import della versione $subadminopt"
-										break 2
-										;;
-
+										case $REPLY in
+											''|*[!0-9]*)
+ 												echo "Opzione non valida"
+												break 1
+												;;
+											*) 
+												if [ "$REPLY" -le "${#webcentral_array[@]}" ] ; then
+													svn_create_repository && svn_import_archibus "${subadminopt}"
+												else 
+ 													echo "Opzione non valida"
+													break 1
+												fi
+												break 2
+												;;
+										esac;
 								esac;
 
 							done;
@@ -378,7 +399,7 @@ show_main_menu() {
 
 					break;;
 
-				"Menu Amministrazione utenti"*)
+				"Menu Amministrazione utenti del repository"*)
 					repository_exists
 
 					if [ $? -eq 0 ] ; then
