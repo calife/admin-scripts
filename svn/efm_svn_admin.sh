@@ -6,14 +6,14 @@
 SVN_URL="svn://localhost"
 SVN_ROOT="/var/svn"
 NOME_REPOS=""
-WEBCENTRAL_REPOS="/var/archibus"
 
-ADMIN_USER="supporto"
-ADMIN_PWD="07metallo"
+WEBCENTRAL_REPOS="172.16.1.4"
+WEBCENTRAL_USER="svnuser"
+SVN_ADMIN_USER="supporto"
+SVN_ADMIN_PWD="07metallo"
 
 CODE_SUCCESS=0;
 CODE_ERROR=1;
-
 
 
 # °
@@ -47,7 +47,7 @@ svn_list_repositories() {
 	MESSAGGIO+=$(printf  "  %-80s    \n\n\n " "Elenco dei repository in data $(date --iso)  ")
 	MESSAGGIO+=$(repos=(`ls -1 "$SVN_ROOT"/`) ; 
 
-    printf "\t%-40s%-40s%-40s\n" "${repos[@]}")
+		printf "\t%-40s%-40s%-40s\n" "${repos[@]}")
 	
 	return $CODE_SUCCESS
 
@@ -75,7 +75,7 @@ svn_create_repository() {
 
 			sudo  -p "Inserisci la password per sudo > " sh -c " sed -i \"s/# password-db = passwd/password-db = passwd/g\" \"$SVN_ROOT/$NOME_REPOS/conf/svnserve.conf\"  "
 
-        	row=$(echo "$ADMIN_USER = $ADMIN_PWD")
+        	row=$(echo "$SVN_ADMIN_USER = $SVN_ADMIN_PWD")
             sudo  -p "Inserisci la password per sudo > " sh -c " echo $row >> $SVN_ROOT"/"$NOME_REPOS/conf/passwd "
 
 			MESSAGGIO="SUCCESS:Repository $NOME_REPOS creato"
@@ -230,21 +230,26 @@ svn_change_pwd() {
 	fi;
 }
 
+remoteFileExists() {
+
+	ssh -q $WEBCENTRAL_USER@$WEBCENTRAL_REPOS [[ -f "$1" ]] && return $CODE_SUCCESS || return  $CODE_ERROR
+
+}
+
 svn_import_archibus() {
 
 	unset MESSAGGIO
 
-	zipfile=$WEBCENTRAL_REPOS/WebCv$1_WAR.zip
-    zipfile=$(echo -n "${zipfile//[[:space:]]/}")
+    remoteFileExists "$1"
 
-	if [ ! -f "$zipfile" ] ; then
-		MESSAGGIO="ERROR:Il file $zipfile non esiste..."
+	if [ "$?" -eq $CODE_ERROR  ] ; then
+		MESSAGGIO="ERROR:Il file $1 non esiste..."
 		return $CODE_ERROR
 	else
 
         # Crea la struttura dei folder
 		for folder in trunk tags branches; do
-            svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder"
+            svn --username "$SVN_ADMIN_USER" --password "$SVN_ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder"
 		done;
 
 		if [ "$?" -eq 0  ] ; then
@@ -252,9 +257,10 @@ svn_import_archibus() {
             # Importa nel trunk
 			pushd .
 			tmpdir=`mktemp -d` && mkdir $tmpdir/archibus && \
-				unzip "$zipfile" -d $tmpdir && \
+				scp $WEBCENTRAL_USER@$WEBCENTRAL_REPOS:"$1" $tmpdir && \
+				unzip $tmpdir/` basename "$1" ` -d $tmpdir && \
 				unzip $tmpdir/archibus.war -d $tmpdir/archibus && \
-				cd $tmpdir && svn --username "$ADMIN_USER" --password "$ADMIN_PWD"  import -m "Initial import versione $zipfile " archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
+				cd $tmpdir && svn --username "$SVN_ADMIN_USER" --password "$SVN_ADMIN_PWD"  import -m "Initial import versione $1 " archibus "$SVN_URL"/"$NOME_REPOS"/trunk/archibus
 			popd && rm -rf $tmpdir
 
 			if [ "$?" -eq 0  ] ; then
@@ -329,12 +335,6 @@ show_main_menu() {
         "Quit"
     );
 
-    local webcentral_array=(`ls -1 "$WEBCENTRAL_REPOS"/ `)
-
-    # Versioni di archibus nel formato 
-	webcentral_array=(${webcentral_array[@]/"WebCv"/})
-	webcentral_array=(${webcentral_array[@]/"_WAR.zip"/})
-
 	while true; do
 
 		echo -en "\n### Menu per la gestione dei repository Subversion ###\n"
@@ -352,50 +352,55 @@ show_main_menu() {
 
 				"Crea repository standard"*)
 					
-					if [ $? -eq 0 ] ; then
+					unset MESSAGGIO
 
-						unset MESSAGGIO
+					OLDIFS=$IFS;
+					IFS=$'\n'; 
+					local webcentral_array=(` ssh  $WEBCENTRAL_USER@$WEBCENTRAL_REPOS " find /media/fileserver/Scambio_file/AFM* -type f -name 'WebCv*.zip' -print " | while read fname; do nome=$(echo "$fname"|sed 's/ /\\ /g'); echo "$nome"; done; `);
+					IFS=$OLDIFS;
 
-						while true; do
+					while true; do
 
-							echo -en "\nCatalogo WebCentral disponibili\n"
+						echo -en "\nCatalogo WebCentral disponibili\n"
 
-							PS3="Scegli una versione di WebCentral da caricare [1-${#webcentral_array[@]}] >"
+						PS3="Scegli una versione di WebCentral da caricare [1-${#webcentral_array[@]}] >"
 
-							select subadminopt in "${webcentral_array[@]}                         " "Quit" ; do
+						select subadminopt in "${webcentral_array[@]}                         " "Quit" ; do
 
-								case $subadminopt in
+							case $subadminopt in
 
-									"Quit")
-										unset MESSAGGIO
-										clear
-										break 2
-										;;
+								"Quit")
+									unset MESSAGGIO
+									clear
+									break 2
+									;;
 
-									*)
-										unset MESSAGGIO
-										case $REPLY in
-											''|*[!0-9]*)
+								*)
+									unset MESSAGGIO
+									case $REPLY in
+										''|*[!0-9]*)
+ 											echo "Opzione non valida"
+											break 1
+											;;
+										*) 
+											if [ "$REPLY" -le "${#webcentral_array[@]}" ] ; then
+
+												remoteWarName=$(echo "${subadminopt}"|sed 's/ /\\ /g' | sed 's/[\\ ]*$//g')
+                                                
+												svn_create_repository && svn_import_archibus "${remoteWarName}"
+
+											else 
  												echo "Opzione non valida"
 												break 1
-												;;
-											*) 
-												if [ "$REPLY" -le "${#webcentral_array[@]}" ] ; then
-													svn_create_repository && svn_import_archibus "${subadminopt}"
-												else 
- 													echo "Opzione non valida"
-													break 1
-												fi
-												break 2
-												;;
-										esac;
-								esac;
-
-							done;
+											fi
+											break 2
+											;;
+									esac;
+							esac;
 
 						done;
 
-					fi;
+					done;
 
 					break;;
 
@@ -447,10 +452,6 @@ show_main_menu() {
 					break;
 
 					;;
-				"Caricamento di Archibus Webcentral"*)
-					svn_import_archibus
-					clear
-					break;;
 				"Visualizza informazioni repository"*)
 					svn_show_repository
 					clear
