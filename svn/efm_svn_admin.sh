@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Friday, 21. November 2014
+# Wednesday, 22. July 2015
 #
 
 SVN_URL="svn://localhost"
@@ -89,6 +89,49 @@ svn_create_repository() {
 	fi;
 
 }
+
+svn_create_empty_repository() {
+
+	unset MESSAGGIO
+
+	read -p "Nome del repository da creare > " NOME_REPOS
+	
+	if [  -z "$NOME_REPOS" ] ; then
+
+		svn_create_repository
+
+	else
+
+		if [ -d "$SVN_ROOT"/"$NOME_REPOS" ] ; then
+			MESSAGGIO="ERROR:Repository $NOME_REPOS già esistente..."
+			return $CODE_ERROR
+		fi;
+
+		sudo -p "Inserisci la password per sudo > " svnadmin create "$SVN_ROOT/$NOME_REPOS"
+		if [ "$?" -eq 0  ] ; then
+
+			sudo  -p "Inserisci la password per sudo > " sh -c " sed -i \"s/# password-db = passwd/password-db = passwd/g\" \"$SVN_ROOT/$NOME_REPOS/conf/svnserve.conf\"  "
+
+        	row=$(echo "$SVN_ADMIN_USER = $SVN_ADMIN_PWD")
+            sudo  -p "Inserisci la password per sudo > " sh -c " echo $row >> $SVN_ROOT"/"$NOME_REPOS/conf/passwd "
+
+			# Crea la struttura dei folder
+			for folder in trunk tags branches; do
+				svn --username "$SVN_ADMIN_USER" --password "$SVN_ADMIN_PWD"  mkdir "$SVN_URL"/"$NOME_REPOS"/$folder -m "Creating $folder folder"
+			done;			
+
+			MESSAGGIO="SUCCESS:Repository $NOME_REPOS creato"
+			return $CODE_SUCCESS
+		else
+			MESSAGGIO="ERROR:Errore in svnadmin create..."
+			return $CODE_ERROR
+		fi;
+
+
+	fi;
+
+}
+
 
 svn_show_repository() {
 
@@ -355,7 +398,8 @@ show_main_menu() {
 
 				"Crea repository vuoto"*)
 					unset MESSAGGIO					
-					svn_create_repository
+					svn_create_empty_repository
+					clear
 					break;;
 
 				"Crea repository standard archibus"*)
