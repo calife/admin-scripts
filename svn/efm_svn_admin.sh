@@ -321,7 +321,8 @@ show_main_menu() {
 
 	local comandi=(
 		"Elenca repository                          "
-		"Crea repository standard                   "
+		"Crea repository vuoto (solo layout)        "
+		"Crea repository standard archibus          "
 		"Menu Amministrazione utenti del repository "
 		"Visualizza informazioni repository         "
 		"Quit                                       "
@@ -341,6 +342,8 @@ show_main_menu() {
 
 		PS3=$(decorate_prompt)
 
+		echo $command
+
 		select command in "${comandi[@]}" ; do
 
 			case "$command" in
@@ -350,7 +353,12 @@ show_main_menu() {
 					clear
 					break;;
 
-				"Crea repository standard"*)
+				"Crea repository vuoto"*)
+					unset MESSAGGIO					
+					svn_create_repository
+					break;;
+
+				"Crea repository standard archibus"*)
 					
 					unset MESSAGGIO
 
