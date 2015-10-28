@@ -3,8 +3,10 @@ admin-scripts
 **admin-scripts** E' una collezione di script scritti per eseguire compiti di amministrazione comuni.
 
 * \-> **db/** contiene gli script per la gestione dei database (creazione degli script per archibus, ecc ...)
-* \->
-* \->
+* \-> **svn/** contiene gli script per l' amministrazione dei repository svn(Elenco, Amminisrazione utenti, import iniziale da
+  deploy remoto via smb, etc...)
+* \-> **mail/** contiene gli script per la generazione delle statistiche delle mailbox in formato maildir su postfix, configurato in
+  modalita multiple virtual domain,...)
 
 ## Download
 * [Version dev](https://codeload.github.com/calife/admin-scripts/zip/dev/admin-scripts-dev.zip)
