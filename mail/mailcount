@@ -1,0 +1,149 @@
+#!/bin/bash
+#
+# Report numero di mail nelle caselle maildir
+# 
+# venerdì, 11. gennaio 2013
+# author Pucci
+#
+
+##
+##########################################################  Variabili #####################################################
+##
+VIRTUAL_DOMAIN_FOLDER=/home/vmail  # CARTELLA CONTENTE I VARI VIRTUAL DOMAIN DI POSTA es. /home/vmail/
+DOMAIN="";
+USERID="";
+HOSTNAME=$(hostname);
+###########################################################################################################################
+
+##
+##########################################################  Funzioni ######################################################
+##
+
+Usage() {
+   cat << END_OF_HELP
+
+    Script `basename $0` (mercoledì, 12. dicembre 2012)
+    Utilizzo:
+	      ./`basename $0`  email@domain.tld
+              Es. ./`basename $0` pucci.marcello@tld.com
+              Count numero di mail per la casella pucci.marcello@tld.com
+END_OF_HELP
+}
+
+
+# Verifica il numero di parametri (almeno uno: con il nome account)
+checkNumParam() {
+	if [ ${1} -lt 1 ]; then
+		echo "[ERRORE] ["$(date +%Y"-"%m"-"%d" "%H":"%M":"%S)"] Numero errato di parametri "
+		Usage;
+		exit 1;
+	else 
+		return 0;
+	fi;
+}
+
+# Verifica che l' indirizzo mail $1 sia sintatticamente corretto
+checkMailAddress() {
+	if `echo ${1} | grep -e ".@." 1>/dev/null 2>&1` ; then
+		return 0;
+	else
+		echo "[ERRORE] ["$(date +%Y"-"%m"-"%d" "%H":"%M":"%S)"] Indirizzo mail ${1} non valido"
+		exit 1;
+	fi;
+}
+
+# $1 nella forma user@domain.tld
+getUSERID() {
+	USERID=`echo ${1} | cut -f1 -d'@'`;
+	return 0;
+}
+
+# $1 nella forma user@domain.tld
+getDOMAIN() {
+	DOMAIN=`echo ${1} | cut -f2 -d'@'`;
+	return 0;
+}
+
+# Verifica che esista la cartella di posta (in formato MH) per l' account $1
+checkMailFolderExists() {
+	if [ ! -z ${1} ] && [ -d ${2} ] ; then
+		return 0;
+	else 
+		echo "[ERRORE] ["$(date +%Y"-"%m"-"%d" "%H":"%M":"%S)"] Non esiste la cartella di posta ${1} in ${2} "
+		exit 1;
+	fi;
+}
+
+##
+##########################################################  Main   ##################################################### 
+##
+
+# 1 - Verifiche
+
+checkNumParam $#  # Verifica che siano passati tre argomenti dalla linea di comando
+ 
+checkMailAddress ${1}  # Verifica che il primo parametro sia un indirizzo mail valido
+
+getUSERID ${1};
+getDOMAIN ${1};
+
+checkMailFolderExists ${USERID} ${VIRTUAL_DOMAIN_FOLDER}/${DOMAIN}/${USERID} # Verifica l' esistenza della cartella di posta per l' account
+
+# 2 - Conteggio
+
+BASEDIR=${VIRTUAL_DOMAIN_FOLDER}/${DOMAIN}/${USERID};
+
+
+echo "############################### START REPORT ################################"
+echo "# Mail Usage Statistics "
+echo "# Server name: $(hostname) "
+echo "# Account: ${1} "
+echo "# Date: $(date --iso) "
+echo "#############################################################################"
+echo ""
+
+echo "# Folder total "
+echo ""
+countTot=$(find $BASEDIR -type f -iregex '.*mail.*2,.*' |wc -l );
+countUnread=$(find $BASEDIR -type f -iregex '.*mail.*2,.*' \! -iregex '.*mail.*2,.*S$' |wc -l );
+countRead=$(($countTot-$countUnread));
+size=$(du -ch $BASEDIR | grep total);
+echo -e " ${folder} contains ... $countTot total messages , $countRead read , $countUnread unread , size ${size%total} ";
+echo ""
+
+
+echo "# Folder details "
+echo ""
+
+
+OIFS="$IFS"
+IFS="$(echo -e "\n\r")"
+for folder in `find $BASEDIR -maxdepth 1 -type d \! -name cur \! -name tmp \! -name new \! -name courierimaphieracl \! -name courierimapkeywords |sort ` ; do
+	
+	folder=$(basename "$folder");
+
+# -iregex '.*mail.*2,.*' \! -iregex '.*mail.*2,.*S$'
+	
+	if [ "${folder}" = "${USERID}" ]; then 
+		folder="Inbox"; 
+		countTot=$(find $BASEDIR/cur -type f -iregex '.*mail.*2,.*' |wc -l );
+		countUnread=$(find $BASEDIR/cur -type f -iregex '.*mail.*2,.*' \! -iregex '.*mail.*2,.*S$' |wc -l );
+	        countRead=$(($countTot-$countUnread));
+		size=$(du -ch $BASEDIR/cur | grep total);
+	else
+		countTot=$(find $BASEDIR/$folder/cur -type f -iregex '.*mail.*2,.*' |wc -l );
+		countUnread=$(find $BASEDIR/$folder/cur -type f -iregex '.*mail.*2,.*' \! -iregex '.*mail.*2,.*S$' |wc -l );
+	        countRead=$(($countTot-$countUnread));
+		size=$(du -ch $BASEDIR/$folder/cur | grep total);
+	fi;
+	
+	echo -e " ${folder} contains ... $countTot total messages , $countRead read , $countUnread unread , size ${size%total} ";
+done;		 
+
+IFS="$OIFS"
+
+echo ""
+echo "############################### END REPORT ##################################"
+
+
+exit 0;
