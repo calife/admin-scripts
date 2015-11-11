@@ -19,7 +19,7 @@ INSTANCE_NAME=$1
 ARCHIBUS_SCHEMA_DIR="/usr/local/$INSTANCE_NAME/webapps/archibus/schema"
 
 if [ -d $ARCHIBUS_SCHEMA_DIR ] ; then
-        echo "Running...su nobody -c \"find $ARCHIBUS_SCHEMA_DIR  -maxdepth 1 -type f -iregex '.*\(pdf\|doc\|docx\|xls\|xlsx\msg\)' -mtime +7 -exec rm -f '{}' \;" \"
+        su nobody -c " find $ARCHIBUS_SCHEMA_DIR  -maxdepth 1 -type f -iregex '.*\(pdf\|doc\|docx\|xls\|xlsx\msg\)' -mtime +7 -exec ls -lh '{}' \; "
         su nobody -c " find $ARCHIBUS_SCHEMA_DIR  -maxdepth 1 -type f -iregex '.*\(pdf\|doc\|docx\|xls\|xlsx\msg\)' -mtime +7 -exec rm -f '{}' \; "
         exit 0
 else
